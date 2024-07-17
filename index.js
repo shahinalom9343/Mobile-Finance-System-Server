@@ -27,7 +27,6 @@ async function run() {
     // Connect the client to the server	(optional starting in v4.7)
     // await client.connect();
     const userCollection = client.db("Mobile-Finance-System").collection("users");
-    const loginCollection = client.db("Mobile-Finance-System").collection("login");
 
     // post created user
       app.post("/users",async(req,res)=>{
@@ -55,19 +54,13 @@ async function run() {
       if(user){
         bcrypt.compare(pin, user.pin, async function(err, respond) {
          if(respond===true){
-          const result =await loginCollection.insertOne(user);
-          res.send(result);
+          res.send({user})
          }
        });
       }
     })
 
-    // get login user
-    app.get("/login", async(req,res)=>{
-      const result = await loginCollection.find().toArray();
-      res.send(result);
-    })
-    
+
     // get all users for login system
     app.get("/users", async(req,res)=>{
       const result = await userCollection.find().toArray();
