@@ -3,6 +3,7 @@ const app = express();
 const cors = require("cors");
 require("dotenv").config();
 const { MongoClient, ServerApiVersion } = require('mongodb');
+const bcrypt = require('bcryptjs');
 const port = process.env.PORT || 5000;
 
 // middleware
@@ -27,15 +28,53 @@ async function run() {
     // await client.connect();
     const userCollection = client.db("Mobile-Finance-System").collection("users");
 
+    // post created user
       app.post("/users",async(req,res)=>{
-      const user = req.body;
-      const result = await userCollection.insertOne(user);
+      bcrypt.genSalt(10, function(err, salt) {
+        bcrypt.hash(req.body.pin, salt, async function(err, hash) {
+        const user = {
+          name:req.body.name,
+          email:req.body.email,
+          pin:hash,
+          phone:req.body.phone,
+          bonus:req.body.bonus,
+          role:req.body.role
+        };
+        const result =await userCollection.insertOne(user);
+        res.send(result);
+        });
+      
+      });
+      
+      
+      
+    })
+    
+    // get all users for login system
+    app.get("/users", async(req,res)=>{
+      const result = await userCollection.find().toArray();
       res.send(result);
     })
+
+    app.patch('/users/update/:email',async (req, res) => {
+      const email = req.params.email;
+      const user = req.body;
+      const query = { email };
+      const updateDoc = {
+        $set: { ...user, timestamp: Date.now() },
+      }
+      const result = await userCollection.updateOne(query, updateDoc)
+      res.send(result)
+    })
+
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
-  } finally {
+  }
+  catch(error){
+      res.status(500).json(error.message);
+    }
+  finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
   }
@@ -45,6 +84,19 @@ run().catch(console.dir);
 
 app.get("/", (req,res)=>{
   res.send("MFS server is Running");
+})
+
+// route not found error
+app.use((req,res,next)=>{
+  res.status(404).json({
+    message:"Route Not Found",
+  });
+})
+// Handling server error
+app.use((err,req,res,next)=>{
+  res.status(500).json({
+    message:"Something Broke",
+  });
 })
 
 app.listen(port,()=>{
